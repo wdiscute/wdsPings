@@ -2,10 +2,10 @@
 	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
 		<Category name="wd's Pings">
 			<Action name="PING_TEMP">
-				<Down>wdsPings.CreatePingLocal("1")</Down>
+				<Down>wdsPings.CreatePingOrMarker("p")</Down>
 			</Action>	
 			<Action name="PING_PERM">
-				<Down>wdsPings.CreatePingLocal("2")</Down>
+				<Down>wdsPings.CreatePingOrMarker("m")</Down>
 			</Action>	
 			<Action name="CLEAR_PINGS">
 				<Down>wdsPings.RemovePing("0")</Down>

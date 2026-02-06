@@ -87,12 +87,12 @@ local optionsTable =
     },
     [2] = {
         type = "header",
-        name = "Icon used for pings",
+        name = "Your Icons",
         width = "full",
     },
     [3] = {
         type = "iconpicker",
-        name = "Temporary:",
+        name = "Pings (Temporary):",
         choices = wdsPings.textures,
         getFunc = function() return wdsPings.settings.pingIconTemp end,
         setFunc = function(var)
@@ -106,7 +106,7 @@ local optionsTable =
     },
     [4] = {
         type = "iconpicker",
-        name = "Permanent:",
+        name = "Markers (Permanent):",
         choices = wdsPings.textures,
         getFunc = function() return wdsPings.settings.pingIconPerm end,
         setFunc = function(var)
@@ -120,121 +120,47 @@ local optionsTable =
     },
     [5] = {
         type = "header",
-        name = "CLEAR PERMANENT PINGS",
+        name = "Something went wrong. Please re-open this menu.", --SUMMERSET - [0] Markers loaded
         width = "full",
+        reference = "ClearShareSettingsMenuReference"
     },
     [6] = {
         type = "description",
-        title = "You can also type |cFF746C/wd clear|r (for yourself) or |cFF746C/wd clearall|r (group leader)",
-        text = "",
-        width = "full",
+        title = nil,
+        text = "You may also use |cFF746C/wd clear|r or |cFF746C/wd c|r", --left side above button
+        width = "half",
     },
     [7] = {
-        type = "button",
-        name = "Clear for me",
-        func = function()
-            wdsPings.RemovePing("0", true)
-            wdsPings.updateSaveLoad()
-        end,
+        type = "description",
+        title = nil,
+        text = "You may also use |cFF746C/wd share|r or |cFF746C/wd s|r", --right side above button
         width = "half",
     },
     [8] = {
         type = "button",
-        name = "Clear for EVERYONE",
-        tooltip = "This removes all pings from everyone's game. Group leader required!",
-        func = function()
-            wdsPings.RemovePing("1", true)
-            wdsPings.updateSaveLoad()
-        end,
-        width = "half",
-        warning = "This removes all pings from everyone's game. Group leader required!",
-        disabled = wdsPings.isNotGroupLeader(),
-        reference = "buttonClearEveryone"
-    },
-    [9] = {
-        type = "header",
-        name = "Something went wrong. Please re-open this menu.",
-        width = "full",
-        reference = "SaveLoadHeaderReference"
-    },
-    [10] = {
-        type = "description",
-        title = nil,
-        text = "Something went wrong. Please re-open this menu. Report this to @wdiscute on discord",
-        width = "half",
-        reference = "SaveLoadDescriptionReference2"
-    },
-    [11] = {
-        type = "description",
-        title = nil,
-        text = "Something went wrong. Please re-open this menu. Report this to @wdiscute on discord",
-        width = "half",
-        reference = "SaveLoadDescriptionReference1"
-    },
-    [12] = {
-        type = "button",
-        name = "Clear Saved Pings",
+        name = "Clear Markers",
         tooltip = "",
         func = function()
             wdsPings.ClearSavedPings()
-            wdsPings.updateSaveLoad()
+            wdsPings.updateSettingsTable()
         end,
         width = "half",
-        warning = "This button will clear all pings you have saved in this zone. Can not be undone!"
+        warning = "This button will clear all markers you have in this zone. Can not be undone!"
     },
-    [13] = {
+    [9] = {
         type = "button",
-        name = "Save Visible Pings",
+        name = "Share Markers",
         tooltip = "",
         func = function()
-            wdsPings.SavePings(true)
-            wdsPings.updateSaveLoad()
+            wdsPings.ClearSavedPings()
+            wdsPings.updateSettingsTable()
         end,
         width = "half",
-        warning = "This button will add all currently visible pings to SAVED. Overlapping pings will not be saved."
+        warning = "This button will re-share every marker in this zone with your group."
     },
-    [14] = {
-        type = "description",
-        title = nil,
-        text = "Something went wrong. Please re-open this menu. Report this to @wdiscute on discord",
-        width = "half",
-        reference = "SaveLoadDescriptionReference3",
-    },
-    [15] = {
-        type = "description",
-        title = nil,
-        text = "Re-share close pings",
-        width = "half",
-        reference = "SaveLoadDescriptionReference4",
-    },
-    [16] = {
-        type = "button",
-        name = "Load Saved Pings",
-        tooltip = "",
-        func = function()
-            wdsPings.LoadPings(true)
-            wdsPings.updateSaveLoad()
-        end,
-        width = "half",
-        warning = "This button will clear all visible pings and re-load your saved pings. Other players will not be able to see re-loaded pings until they are re-shared",
-    },
-    [17] = {
-        type = "button",
-        name = "Re-share close Pings",
-        tooltip = "This will re-share close pings to your group members. Group leader is required. ",
-        func = function()
-            wdsPings.ShareClose()
-            wdsPings.updateSaveLoad()
-        end,
-        width = "half",
-        warning = "This button will re-share your saved pings. This is only needed if a player joined the group after placing the ping, or if you are loading previously saved pings and wish to share them. Raid leader required!",
-        isDangerous = true,
-        disabled = wdsPings.isNotGroupLeader(),
-        reference = "buttonReshare"
-    },
-    [18] = { --temp pings settings
+    [10] = { --pings settings
         type = "submenu",
-        name = "|c6488eaTEMPORARY|r PINGS SETTINGS",
+        name = "|c6488eaPINGS|r SETTINGS",
         controls = {
             [1] = {
                 type = "description",
@@ -245,7 +171,7 @@ local optionsTable =
             },
             [2] = {
                 type = "dropdown",
-                name = "Temporary Pings While in Dungeons: ",
+                name = "Pings While in Dungeons: ",
                 tooltip = "",
                 choices = { "Everyone", "Group Leader Only", "None" },
                 getFunc = function() return wdsPings.settings.showTempDungeons end,
@@ -258,7 +184,7 @@ local optionsTable =
             },
             [3] = {
                 type = "dropdown",
-                name = "Temporary Pings While in Trials: ",
+                name = "Pings While in Trials: ",
                 tooltip = "",
                 choices = { "Everyone", "Group Leader Only", "None" },
                 getFunc = function() return wdsPings.settings.showTempTrials end,
@@ -285,9 +211,9 @@ local optionsTable =
             },
         },
     },
-    [19] = { --perm pings settings
+    [11] = { --markers settings
         type = "submenu",
-        name = "|cb399ddPERMANENT|r PINGS SETTINGS",
+        name = "|cb399ddMARKERS|r SETTINGS",
         controls = {
             [1] = {
                 type = "description",
@@ -298,7 +224,7 @@ local optionsTable =
             },
             [2] = {
                 type = "dropdown",
-                name = "Permanent Pings While in Dungeons: ",
+                name = "Markers While in Dungeons: ",
                 tooltip = "",
                 choices = { "Everyone", "Group Leader Only", "None" },
                 getFunc = function() return wdsPings.settings.showPermDungeons end,
@@ -310,7 +236,7 @@ local optionsTable =
             },
             [3] = {
                 type = "dropdown",
-                name = "Permanent Pings While in Trials: ",
+                name = "Markers While in Trials: ",
                 tooltip = "",
                 choices = { "Everyone", "Group Leader Only", "None" },
                 getFunc = function() return wdsPings.settings.showPermTrials end,
@@ -346,7 +272,7 @@ local optionsTable =
 function wdsPings.statLAM()
 
     if(ElmsMarkers ~= nil)then
-        optionsTable[20] = {
+        optionsTable[12] = {
             type = "submenu",
             name = "|cff746c[Beta]|r |c00a551Elm's Markers Import|r",
             reference = "ElmsHeader",
@@ -381,7 +307,7 @@ function wdsPings.statLAM()
                     name = "Import",
                     func = function()
                         wdsPings.ImportPings()
-                        wdsPings.updateSaveLoad()
+                        wdsPings.updateSettingsTable()
                     end,
                     width = "half",
                 },
@@ -406,35 +332,14 @@ end
 
 CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
     if panel ~= wdsPings.panel then return end
-    wdsPings.updateSaveLoad()
+    wdsPings.updateSettingsTable()
 end)
 
-function wdsPings.updateSaveLoad()
+function wdsPings.updateSettingsTable()
 
     if(wdsPings.headerLocked == false)then
-        SaveLoadHeaderReference.data.name = "" ..
-        wdsPings.GetCurrentZoneNameWithColor() .. "|r PINGS - |cA9DDB1[" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] SAVED|r - |cFECBA5[" .. #wdsPings.array .. "] VISIBLE|r"
-        SaveLoadHeaderReference:UpdateValue()
-    end
-    buttonClearEveryone.data.disabled = wdsPings.isNotGroupLeader()
-    buttonReshare.data.disabled = wdsPings.isNotGroupLeader()
-
-    SaveLoadDescriptionReference1.data.text = "Save |cFECBA5[" .. #wdsPings.array .. "] visible|r pings to saved|r"
-    SaveLoadDescriptionReference1:UpdateValue()
-
-    SaveLoadDescriptionReference2.data.text = "Clear all |cA9DDB1[" ..
-    wdsPings.GetNumberOfPingsInCurrentZone() .. "] saved|r pings in " .. wdsPings.GetCurrentZoneNameWithColor()
-    SaveLoadDescriptionReference2:UpdateValue()
-
-    SaveLoadDescriptionReference3.data.text = "Load all |cA9DDB1[" ..
-    wdsPings.GetNumberOfPingsInCurrentZone() .. "] saved|r pings in " .. wdsPings.GetCurrentZoneNameWithColor()
-    SaveLoadDescriptionReference3:UpdateValue()
-
-    SaveLoadDescriptionReference4.data.text = "Re-share |cb399dd[" .. wdsPings.GetNumberOfPingsInRange() .. "] pings|r in range."
-    SaveLoadDescriptionReference4:UpdateValue()
-
-    if(wdsPings.submenuLocked == false and ElmsMarkers ~= nil)then
-        ElmsHeader.data.name = "|cff746c[Beta]|r |c00a551Elm's Markers Import|r"
-        ElmsHeader:UpdateValue()
+        ClearShareSettingsMenuReference.data.name = "" ..
+        wdsPings.GetCurrentZoneNameWithColor() .. "|r - |cA9DDB1[" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] MARKERS SAVED|r"
+        ClearShareSettingsMenuReference:UpdateValue()
     end
 end

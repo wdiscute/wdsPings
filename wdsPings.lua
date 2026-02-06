@@ -16,32 +16,74 @@ wdsPings.SenderPosition = {}
 --  -flash color
 
 
-function wdsPings.Initialize()
+function wdsPings:OnIncomingPing(tag, data)
+  --only accept ping if zoneid matches the sender
+  d("-----")
+  d("received ping at:" .. data.encoded)
+  d("from" .. tag)
+  d("-----")
 
+  --decode
+  local x, y, z, texture, type = data.encoded:match("([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)")
+
+  x = x * 10
+  y = y * 10
+  z = z * 10
+
+  --ignore self pings
+  if (GetGroupIndexByUnitTag("player") == GetGroupIndexByUnitTag(tag)) then
+    return
+  end
+
+  local zoneidSender, _, _, _ = GetUnitRawWorldPosition(tag)
+  local zoneidReceiver, _, _, _ = GetUnitRawWorldPosition("player")
+  if (zoneidSender == zoneidReceiver) then
+    wdsPings.placePing(x, y, z, wdsPings.textures[tonumber(texture)], type)
+  else
+    --if zoneid doesnt match, save on that zone still
+    if (data.type ~= "p") then
+
+    end
+  end
+end
+
+function wdsPings.sendData(x, y, z, texture, type)
+  local string = x .. "," .. y .. "," .. z .. "," .. wdsPings.getTextureIdFromString(texture) .. "," .. type
+  wdsPings.protocol:Send({
+    encoded = string,
+  });
+end
+
+function wdsPings.InitLibGroupBroadcast()
+  if not LibGroupBroadcast then return end
+  local LGB = LibGroupBroadcast
+
+
+  wdsPings.handler = LGB:RegisterHandler("wdsPings")
+  wdsPings.handler:SetDisplayName("wd's pings stuff")
+  wdsPings.handler:SetDescription("Shares pings and markers.")
+
+  wdsPings.protocol = wdsPings.handler:DeclareProtocol(167, "wdsPings")
+
+  wdsPings.protocol:AddField(LGB.CreateStringField("encoded"))
+  wdsPings.protocol:OnData(function(...) wdsPings:OnIncomingPing(...) end)
+
+  wdsPings.protocol:Finalize({
+    isRelevantInCombat = true,
+    replaceQueuedMessages = false
+  })
+end
+
+function wdsPings.Initialize()
   EVENT_MANAGER:UnregisterForEvent(wdsPings.name, EVENT_ADD_ON_LOADED)
 
-  --SUBSCRIBE TO DATA SHARE MAP NUMBER
-  wdsPings.share = LibDataShare:RegisterMap("wdsPings", 31, wdsPings.CreatePingReceived)
+  --libGroupBroadcast
+  wdsPings.InitLibGroupBroadcast()
 
   wdsPings.submenuLocked = false
   wdsPings.headerLocked = false
   wdsPings.headerString = ""
   wdsPings.array = {}
-  
-  local fakePing = {}
-
-  fakePing[1] = {
-    [1] = 11,
-    [2] = 11,
-    [3] = 11,
-    [4] = "wdsPings/icons/default_ping.dds",
-  }
-  fakePing[2] = {
-    [1] = 11,
-    [2] = 11,
-    [3] = 11,
-    [4] = "wdsPings/icons/default_ping.dds",
-  }
 
   wdsPings.defaultSavedVariables =
   {
@@ -60,6 +102,20 @@ function wdsPings.Initialize()
   wdsPings.savedVariables = ZO_SavedVars:NewAccountWide("wdsPingsVariables", 23, nil, wdsPings.defaultSavedVariables,
     GetWorldName())
 
+  local fakePing = {}
+
+  fakePing[1] = {
+    [1] = 11,
+    [2] = 11,
+    [3] = 11,
+    [4] = "wdsPings/icons/default_ping.dds",
+  }
+  fakePing[2] = {
+    [1] = 11,
+    [2] = 11,
+    [3] = 11,
+    [4] = "wdsPings/icons/default_ping.dds",
+  }
 
   wdsPings.savedVariables.SavedPings[363] = fakePing
 
@@ -78,16 +134,10 @@ function wdsPings.Initialize()
 
   wdsPings.optionsTable = {}
 
-  if(ElmsMarkers == nil and wdsPings.savedVariables.ESS == true)then
-    ElmsMarkers = 1;
-  end
-
   SLASH_COMMANDS["/wd"] = wdsPings.SlashCommand
 
   --starts LAM so that message doesnt show in chat??? unsure why that is but this fixes it
   wdsPings.statLAM()
-
-
 end
 
 function wdsPings.SlashCommand(input)
@@ -101,17 +151,14 @@ function wdsPings.SlashCommand(input)
   local rest = input.sub(input, string.len(command) + 2, 100)
 
   if (command == "debug") then
-    d(GetAbilityName(85840))
-
   end
 
   if (command == "debug2") then
-    --wdsPings.array[1].data.texture = "wdsPings/icons/Arrow_aqua.dds"
-    --OSI.UpdateIconData(wdsPings.array[1], "wdsPings/icons/Arrow_orange.dds", OSI.BASECOLOR, nil)
-  end  
-  
+
+  end
+
   if (command == "debug3") then
-    --OSI.DiscardPositionIcon(wdsPings.array[i])
+
   end
 
   if (command == "clear" or command == "2" or command == "c" or command == "remove" or command == "x") then
@@ -128,85 +175,43 @@ function wdsPings.SlashCommand(input)
     return
   end
 
-  if (command == "t" or command == "ping" or command == "temp" or command == "temporary") then
-    wdsPings.CreatePingLocal("1")
+  if (command == "t" or command == "p" or command == "temp" or command == "temporary") then
+    wdsPings.CreatePingOrMarker("p")
     return
   end
 
   if (command == "p" or command == "perm" or command == "permanent") then
-    wdsPings.CreatePingLocal("2")
+    wdsPings.CreatePingOrMarker("marker")
     return
   end
 
   if (command == "s" or command == "share") then
-    if (IsUnitGroupLeader('player') == false) then
-      d("|cEAC8E9[wd's pings] |cee5555[!] group leader is required to share your pings [!]")
-      return
-    end
-    wdsPings.ShareClose()
-
+    wdsPings.ShareMarkers()
   end
 
   if (command == "pos") then
     d(GetUnitRawWorldPosition("player"))
   end
-
-  if (command == "d" or command == "data") then
-    --/wd d 10001450153
-    d("input data: " .. rest)
-    if (rest == "") then
-      wdsPings.share:QueueData(10001450153)
-      d("no number after /wd d, defaulting to sending 10001450153")
-    else
-      local intToSend = tonumber(rest)
-      wdsPings.share:QueueData(intToSend)
-    end
-    return
-  end
-
-  if (command == "r" or command == "receive") then
-    --/wd d 10001450153
-    d("receiving input data: " .. rest)
-    if (rest == "") then
-      d("no number after /wd r, defaulting to receiving 10001450153")
-      wdsPings.CreatePingReceived('player', 10001450153)
-    else
-      local intToSend = tonumber(rest)
-      d("triggering received data with " .. rest)
-      wdsPings.CreatePingReceived('player', rest)
-    end
-    return
-  end
-
-  if (command == "ess") then
-
-    wdsPings.savedVariables.ESS = not wdsPings.savedVariables.ESS
-    ReloadUI()
-
-  end
-
 end
 
 function wdsPings.UpdatePingsAnim(icon)
-
-  if(false)then
-    if(icon.counter == nil)then
+  if (false) then
+    if (icon.counter == nil) then
       icon.counter = 300
       icon.direction = "down"
     end
-  
-    if(icon.counter < 80)then
+
+    if (icon.counter < 80) then
       icon.direction = "stop"
     end
-  
-    if(icon.direction == "down")then
+
+    if (icon.direction == "down") then
       icon.counter = icon.counter - 3
       --icon.data.texture = "wdsPings/icons/Arrow_aqua.dds"
     end
-  
+
     icon.data.size = icon.counter
     --icon.data.color = {math.random(), math.random(), math.random()}
-  
   end
 end
 
@@ -218,180 +223,34 @@ function wdsPings.getTextureIdFromString(textureString)
   end
 end
 
-function wdsPings.CreatePingReceived(tag, data)
-  local senderzoneid, senderx, sendery, senderz = GetUnitRawWorldPosition(tag)
-  local playerzoneid, _, _, _ = GetUnitRawWorldPosition('player')
-
-  --ignores ping if not on the same zone as sender
-  if(playerzoneid ~= senderzoneid)then
-    return
-  end
-
-  -- MAX VALUE 62331613569
-  -- Example:  10099120063
-  -- 1        00          99         120       0       63
-  -- LENGTH   future?     ICON       VALUE     SIGN    RADIANSPERCENTAGE
-
-  local length                            = string.sub(data, 1, 1)   --1 = temp, 2 = permanent, 3 = remove pings & other stuff, 4 = mass share
-  local icon                              = string.sub(data, 4, 5)   --0 to 99 icon texture
-  local value                             = string.sub(data, 6, 8)   --hardcoded distance to spawn ping calculated from camera angle on ping spawn
-  local sign                              = string.sub(data, 9, 9)   --whether the radians are positive or negative
-  local radiansPercentage                 = string.sub(data, 10, 11) --from 0 to 100 % of 0 to pi
-  local isSenderGroupLeader               = IsUnitGroupLeader(tag)
-
-  if (length == "3") then
-    if(radiansPercentage == "01")then
-      d("|cEAC8E9[wd's pings] Receiving pings data... Do not open your map.")
-      wdsPings.SenderPosition[1] = senderx
-      wdsPings.SenderPosition[2] = sendery
-      wdsPings.SenderPosition[3] = senderz
-      return
-    end
-
-    if(radiansPercentage == "02")then
-      --30000000002
-      local pingsreceived = string.sub(data, 2, 4)
-      d("|cEAC8E9[wd's pings] All data received. [" .. pingsreceived .. "] pings loaded.")
-      return
-    end
-
-    if(isSenderGroupLeader == true)then
-      for k = 1, #wdsPings.array do
-        OSI.DiscardPositionIcon(wdsPings.array[k])
-      end
-      for j = 1, #wdsPings.array do
-        table.remove(wdsPings.array, 1)
-      end
-      d("|cEAC8E9[wd's pings] Your group leader has cleared all pings for everyone.")
-      return
-    end
-
-  end
-  
-  --if ping received is from share functionality
-  if(length == "4") then
-    wdsPings.CreatePingShared(tag, data)
-    return
-  end
-
-  --cancels ping if it was a remove
-  if (length == "3") then return end
-  --temp dungeons settings
-  if (length == "1" and GetGroupSize() < 5) then
-    if (wdsPings.settings.showTempDungeons == "Group Leader Only" and isSenderGroupLeader == false) then return end
-    if (wdsPings.settings.showTempDungeons == "None") then return end
-  end
-  --temp trials settings
-  if (length == "1" and GetGroupSize() > 4) then
-    if (wdsPings.settings.showTempTrials == "Group Leader Only" and isSenderGroupLeader == false) then return end
-    if (wdsPings.settings.showTempTrials == "None") then return end
-  end
-  --perm dungeons settings
-  if (length == "2" and GetGroupSize() < 5) then
-    if (wdsPings.settings.showPermDungeons == "Group Leader Only" and isSenderGroupLeader == false) then return end
-    if (wdsPings.settings.showPermDungeons == "None") then return end
-  end
-  --perm trials settings
-  if (length == "2" and GetGroupSize() > 4) then
-    if (wdsPings.settings.showPermTrials == "Group Leader Only" and isSenderGroupLeader == false) then return end
-    if (wdsPings.settings.showPermTrials == "None") then return end
-  end
-  --get scale from settings
-  local scale = 10
-  if (length == "1") then
-    scale = wdsPings.settings.scaleTempPing
-  else
-    scale = wdsPings.settings.scalePermPing
-  end
-
-  local senderCameraHeading = math.pi * radiansPercentage / 100
-  if (sign == "0") then
-    senderCameraHeading = -senderCameraHeading
-  end
-
-  senderx = senderx + (math.sin(senderCameraHeading) * (tonumber(value) * 10))
-  senderz = senderz + (math.cos(senderCameraHeading) * (tonumber(value) * 10))
-
-  local iconOSI = OSI.CreatePositionIcon(senderx, sendery, senderz, wdsPings.textures[tonumber(icon)], scale * 10,
-    OSI.BASECOLOR, -0.3)
-
-  --saves icon in array to delete with /wd clear
+function wdsPings.placePing(x, y, z, texture, type)
+  --spawn icon using OSI
+  local iconOSI = OSI.CreatePositionIcon(x, y, z, texture, wdsPings.settings.scaleTempPing * 10, OSI.BASECOLOR, 0,
+    callback)
+  --this ^^^^
+  --saves icon returned by OSI in array so i have my own version of the pings collection
   wdsPings.array[#wdsPings.array + 1] = iconOSI
+  iconOSI.counter = nil
+  --todo ping animations
+  --iconOSI.callback = function() wdsPings.UpdatePingsAnim(iconOSI) end
 
-  --if temporary, remove after 3500
-  --CHANGE TO CUSTOMIZABLE TIMER LATER
-  if (length == "1") then
+  --if ping then delete after 3500ms
+  --TODO: CHANGE 3500 TO SOMETHING CONFIGURABLE
+  if (type == "p") then
     zo_callLater(
       function()
         OSI.DiscardPositionIcon(iconOSI)
-
+        --remove from array, should prob change the name at some point (edit 2 weeks later: i will not)
         for i = 1, #wdsPings.array do
           if (wdsPings.array[i] == iconOSI) then
             table.remove(wdsPings.array, i)
           end
         end
       end, 3500)
-
-    PlaySound("Campaign_Ready_Check")
-  else
-    PlaySound("Campaign_Ready_Check")
   end
 end
 
-function wdsPings.CreatePingShared(tag, data)
-  local senderzoneid, _, _, _ = GetUnitRawWorldPosition(tag)
-  local senderx = wdsPings.SenderPosition[1]
-  local sendery = wdsPings.SenderPosition[2]
-  local senderz = wdsPings.SenderPosition[3]
-  local playerzoneid, _, _, _ = GetUnitRawWorldPosition('player')
-
-  if(playerzoneid ~= senderzoneid)then
-    d("|cEAC8E9[wd's pings] Your group leader is trying to share their pings but you are not on the same zone.")
-    return
-  end
-
-  -- MAX VALUE 62331613569
-  -- Example:  4073305938         
-  --4    07   18   752        327
-  --TYPE ID   Y    DISTANCE   RADPERCENT
-
-  local type                              = string.sub(data, 1, 1)   --always gonna be 4 since shared = 4
-  local icon                              = string.sub(data, 2, 3)   --0 to 99 icon texture
-  local offsety                           = string.sub(data, 4, 5)   --offset y * 10, even = positive, odd = negative
-  local distance                          = string.sub(data, 6, 8)   --distance of ping in the direction of RADPERCENT * 10
-  local radpercent                        = string.sub(data, 9, 11)   --whether the radians are positive or negative
-  local isSenderGroupLeader               = IsUnitGroupLeader(tag)   --always true if this function is being ran normaly
-  
-  --fix up data received
-  local _, rem = math.modf(offsety / 2)
-  if (rem == 0) then
-    offsety = offsety
-  else
-    offsety = offsety * -1
-  end
-  local tex = wdsPings.textures[tonumber(icon)]
-  distance = distance * 10
-  offsety = offsety * 10
-  local radpluspi = tonumber(radpercent) * (math.pi * 2) / 999
-  radpluspi = radpluspi - math.pi
-
-  local x = math.sin(radpluspi) * distance
-  local z = math.cos(radpluspi) * distance
-  x = tonumber(x) + senderx
-  offsety = tonumber(offsety) + sendery
-  z = tonumber(z) + senderz
-  
-  PlaySound("Campaign_Ready_Check")
-
-  local iconOSI = OSI.CreatePositionIcon(tonumber(x), tonumber(offsety), tonumber(z), tex, wdsPings.settings.scalePermPing * 10,
-    OSI.BASECOLOR, -0.3)
-
-  --saves icon in array
-  wdsPings.array[#wdsPings.array + 1] = iconOSI
-
-end
-
-function wdsPings.CreatePingLocal(length)
+function wdsPings.CreatePingOrMarker(type)
   local zoneid, x, y, z = GetUnitRawWorldPosition("player")
 
   local cameraHeading = GetPlayerCameraHeading() - math.pi
@@ -489,13 +348,6 @@ function wdsPings.CreatePingLocal(length)
     end
   end
 
-  local sign
-  if (cameraHeading > 0) then
-    sign = 1
-  else
-    sign = 0
-  end
-
   --slightly more accurate rotation than sending raw radians
   local radiansPercentage = math.abs(cameraHeading) * 100 / math.pi
   radiansPercentage = string.sub(radiansPercentage, 1, 2)
@@ -505,86 +357,48 @@ function wdsPings.CreatePingLocal(length)
     radiansPercentage = "0" .. radiansPercentage
   end
 
+  -- [deprecated] old encoding system
   -- MAX VALUE 62331613569
   -- Example:  10099120063
   -- 1        00          99         120       0       63
   -- LENGTH   future?     ICON       VALUE     SIGN    RADIANSPERCENTAGE
 
-  local pingString = 0
-
-  if (length == "1") then
-    PlaySound("Campaign_Ready_Check")  
-    pingString = wdsPings.getTextureIdFromString(wdsPings.settings.pingIconTemp)
+  local texture
+  if (type == "p") then
+    texture = wdsPings.settings.pingIconTemp
   else
-    PlaySound("Campaign_Ready_Check")  
-    pingString = wdsPings.getTextureIdFromString(wdsPings.settings.pingIconPerm)
-  end
-
-  local pingString2 = "00"
-  if (pingString < 10) then
-    pingString2 = "0" .. tostring(pingString)
-  else
-    pingString2 = tostring(pingString)
-  end
-
-  local icontexture
-  if (length == "1") then
-    icontexture = wdsPings.settings.pingIconTemp
-  else
-    icontexture = wdsPings.settings.pingIconPerm
-  end
-
-  --get scale from settings
-  local scale = 1
-  if (length == "1") then
-    scale = wdsPings.settings.scaleTempPing
-  else
-    scale = wdsPings.settings.scalePermPing
+    texture = wdsPings.settings.pingIconPerm
   end
 
   local valueFinal = tonumber(value) * 10
 
-  local extraDataForFutureUse = "00"
-  local dataToSend = length .. extraDataForFutureUse .. pingString2 .. value .. sign .. radiansPercentage
-  local dataToSendint = tonumber(dataToSend)
-
   x = x + (xsin * tonumber(valueFinal))
   z = z + (zcos * tonumber(valueFinal))
+  --place ping local
+  wdsPings.placePing(x, y, z, texture, type)
 
-  wdsPings.share:SendData(dataToSendint)
-  
+  x = x / 10
+  x = math.floor(x)
+
+  z = z / 10
+  z = math.floor(z)
+
+  y = y / 10
+  y = math.floor(y)
+
+  --share ping to group
+  wdsPings.sendData(x .. "", y .. "", z .. "", texture, type)
+
+
+
+
   --TODO PLAY AROUND WITH THIS
   local callback = nil
-
-  --spawn icon using OSI
-  local iconOSI = OSI.CreatePositionIcon(x, y, z, icontexture, scale * 10, OSI.BASECOLOR, 0, callback)
-  --this ^^^^
-  --saves icon returned by OSI in array so i have my own version of the pings collection
-  wdsPings.array[#wdsPings.array + 1] = iconOSI
-  iconOSI.counter = nil
-  iconOSI.callback = function() wdsPings.UpdatePingsAnim(iconOSI) end
-
-  --if temp then delete after 3500ms
-  --TODO: CHANGE 3500 TO SOMETHING CONFIGURABLE
-  if (length == "1") then
-    zo_callLater(
-      function()
-        OSI.DiscardPositionIcon(iconOSI)
-
-        --remove from array, should prob change the name at some point (edit 2 weeks later: i will not)
-        for i = 1, #wdsPings.array do
-          if (wdsPings.array[i] == iconOSI) then
-            table.remove(wdsPings.array, i)
-          end
-        end
-      end, 3500)
-  end
 end
 
 function wdsPings.RemovePing(type, showInChat)
   for i = 1, #wdsPings.array do
     OSI.DiscardPositionIcon(wdsPings.array[i])
-    
   end
   for i = 1, #wdsPings.array do
     table.remove(wdsPings.array, 1)
@@ -600,7 +414,7 @@ function wdsPings.RemovePing(type, showInChat)
       if (showInChat == true) then
         d(
           "|cEAC8E9[wd's pings] Only group leaders may clearall. Use |cff0000/wd |cEAC8E9 if you meant to clear only your pings.")
-      return
+        return
       end
     end
   end

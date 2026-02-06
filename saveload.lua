@@ -2,10 +2,12 @@ function wdsPings.GetCurrentZoneID()
     local zoneid, senderx, sendery, senderz = GetUnitRawWorldPosition('player')
     return zoneid
 end
+
 function wdsPings.GetNumberOfPingsInCurrentZone()
     if (wdsPings.savedVariables.SavedPings[wdsPings.GetCurrentZoneID()] == nil) then return 0 end
     return #wdsPings.savedVariables.SavedPings[wdsPings.GetCurrentZoneID()]
 end
+
 function wdsPings.GetCurrentZoneNameWithColor(zoneid)
     if (zoneid == nil) then
         local zoneid2, x, y, z = GetUnitRawWorldPosition("player")
@@ -74,28 +76,31 @@ function wdsPings.GetCurrentZoneNameWithColor(zoneid)
 end
 
 function wdsPings.ClearSavedPings()
-    d("|cEAC8E9[wd's pings] Cleared all pings saved in " .. wdsPings.GetCurrentZoneNameWithColor(zoneid))
+    d("|cEAC8E9[wd's pings] Cleared all markers for " .. wdsPings.GetCurrentZoneNameWithColor(zoneid))
     wdsPings.headerLocked = true
-    SaveLoadHeaderReference.data.name = 
-   wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cA9DDB1Cleared all saved pings"
-    SaveLoadHeaderReference:UpdateValue()
+    ClearShareSettingsMenuReference.data.name = wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r - |cA9DDB1Cleared all markers"
+    ClearShareSettingsMenuReference:UpdateValue()
+
     wdsPings.headerString = "clear"
-    zo_callLater(function() 
+
+    zo_callLater(function()
         if(wdsPings.headerString == "clear")then
             wdsPings.headerLocked = false
-            wdsPings.updateSaveLoad()
+            wdsPings.updateSettingsTable()
         end
      end, 3500)
+
     local zoneid, playerx, playery, playerz = GetUnitRawWorldPosition('player')
     wdsPings.savedVariables.SavedPings[zoneid] = nil
 end
+
 
 function wdsPings.isNotGroupLeader()
     if(IsUnitGroupLeader('player'))then
         return false
     else
         return true
-    end 
+    end
 end
 
 function wdsPings.SavePings(showInChat)
@@ -105,14 +110,14 @@ function wdsPings.SavePings(showInChat)
     if (#wdsPings.array == 0 and showInChat == true) then
         d("|cEAC8E9[wd's pings] There are no active pings to save in " .. wdsPings.GetCurrentZoneNameWithColor(zoneid))
         wdsPings.headerLocked = true
-        SaveLoadHeaderReference.data.name = 
+        ClearShareSettingsMenuReference.data.name =
         "|cee5555[!] There's no active pings to save in " .. wdsPings.GetCurrentZoneNameWithColor() .. " |cee5555[!]"
-        SaveLoadHeaderReference:UpdateValue()
+        ClearShareSettingsMenuReference:UpdateValue()
         wdsPings.headerString = "save"
-        zo_callLater(function() 
+        zo_callLater(function()
             if(wdsPings.headerString == "save")then
                 wdsPings.headerLocked = false
-                wdsPings.updateSaveLoad()
+                wdsPings.updateSettingsTable()
             end
          end, 3500)
         return
@@ -156,14 +161,14 @@ function wdsPings.SavePings(showInChat)
     if (skipPingMessage > 0) then
         d("|cEAC8E9[wd's pings] " .. skipPingMessage .. " pings weren't added as they were overlapping existing saved pings.")
         wdsPings.headerLocked = true
-        SaveLoadHeaderReference.data.name = 
+        ClearShareSettingsMenuReference.data.name =
         "|cee5555[!] " .. skipPingMessage .. " overlapping pings were not added [!]"
-        SaveLoadHeaderReference:UpdateValue()
+        ClearShareSettingsMenuReference:UpdateValue()
         wdsPings.headerString = "save2"
-        zo_callLater(function() 
+        zo_callLater(function()
             if(wdsPings.headerString == "save2")then
                 wdsPings.headerLocked = false
-                wdsPings.updateSaveLoad()
+                wdsPings.updateSettingsTable()
             end
          end, 3500)
     end
@@ -172,19 +177,19 @@ function wdsPings.SavePings(showInChat)
         d("|cEAC8E9[wd's pings] Added [" .. #pingsToAdd .. "] new pings in " .. wdsPings.GetCurrentZoneNameWithColor(zoneid) .. ".")
         wdsPings.headerLocked = true
         if(skipPingMessage > 0)then
-            SaveLoadHeaderReference.data.name = 
+            ClearShareSettingsMenuReference.data.name =
         wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cA9DDB1added [" .. #pingsToAdd .. "]|r pings - |cee5555[" .. skipPingMessage .. "] skipped"
         else
-            SaveLoadHeaderReference.data.name = 
+            ClearShareSettingsMenuReference.data.name =
         wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cA9DDB1added [" .. #pingsToAdd .. "]|r pings"
         end
-        
-        SaveLoadHeaderReference:UpdateValue()
+
+        ClearShareSettingsMenuReference:UpdateValue()
         wdsPings.headerString = "save3"
-        zo_callLater(function() 
+        zo_callLater(function()
             if(wdsPings.headerString == "save3")then
                 wdsPings.headerLocked = false
-                wdsPings.updateSaveLoad()
+                wdsPings.updateSettingsTable()
             end
          end, 3500)
     end
@@ -209,7 +214,6 @@ function wdsPings.SavePings(showInChat)
     else
         wdsPings.savedVariables.SavedPings[zoneid] = pingsToAdd
     end
-    
 
 end
 
@@ -222,14 +226,14 @@ function wdsPings.LoadPings(showInChat)
         if (showInChat == true) then
             d("|cEAC8E9[wd's pings] There are no pings saved in " .. wdsPings.GetCurrentZoneNameWithColor(zoneid))
             wdsPings.headerLocked = true
-            SaveLoadHeaderReference.data.name = wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cee5555 there's no pings to load"
-            SaveLoadHeaderReference:UpdateValue()
-            
+            ClearShareSettingsMenuReference.data.name = wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cee5555 there's no pings to load"
+            ClearShareSettingsMenuReference:UpdateValue()
+
             wdsPings.headerString = "load2"
-            zo_callLater(function() 
+            zo_callLater(function()
                 if(wdsPings.headerString == "load2")then
                     wdsPings.headerLocked = false
-                    wdsPings.updateSaveLoad()
+                    wdsPings.updateSettingsTable()
                 end
              end, 3500)
         end
@@ -240,27 +244,27 @@ function wdsPings.LoadPings(showInChat)
         if(wdsPings.GetNumberOfPingsInCurrentZone() == 1)then
             d("|cEAC8E9[wd's pings] Loaded [" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] ping for " .. wdsPings.GetCurrentZoneNameWithColor(zoneid))
             wdsPings.headerLocked = true
-            SaveLoadHeaderReference.data.name = wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cA9DDB1loaded [" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] |r ping"
-            SaveLoadHeaderReference:UpdateValue()
-            
+            ClearShareSettingsMenuReference.data.name = wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cA9DDB1loaded [" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] |r ping"
+            ClearShareSettingsMenuReference:UpdateValue()
+
             wdsPings.headerString = "load"
-            zo_callLater(function() 
+            zo_callLater(function()
                 if(wdsPings.headerString == "load")then
                     wdsPings.headerLocked = false
-                    wdsPings.updateSaveLoad()
+                    wdsPings.updateSettingsTable()
                 end
              end, 3500)
         else
             d("|cEAC8E9[wd's pings] Loaded [" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] pings for " .. wdsPings.GetCurrentZoneNameWithColor(zoneid))
             wdsPings.headerLocked = true
-            SaveLoadHeaderReference.data.name = wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cA9DDB1loaded [" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] |r pings"
-            SaveLoadHeaderReference:UpdateValue()
-            
+            ClearShareSettingsMenuReference.data.name = wdsPings.GetCurrentZoneNameWithColor(zoneid) .. "|r pings - |cA9DDB1loaded [" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] |r pings"
+            ClearShareSettingsMenuReference:UpdateValue()
+
             wdsPings.headerString = "load2"
-            zo_callLater(function() 
+            zo_callLater(function()
                 if(wdsPings.headerString == "load2")then
                     wdsPings.headerLocked = false
-                    wdsPings.updateSaveLoad()
+                    wdsPings.updateSettingsTable()
                 end
              end, 3500)
         end
@@ -394,19 +398,19 @@ function wdsPings.ShareClose()
 
     wdsPings.share:QueueData(tonumber(finishedstring))
 
-    if(SaveLoadHeaderReference == nil)then
+    if(ClearShareSettingsMenuReference == nil)then
         return
     end
     zo_callLater(function()
         if(wdsPings.headerString == "share")then
             wdsPings.headerLocked = false
-            wdsPings.updateSaveLoad()
+            wdsPings.updateSettingsTable()
         end
     end, 3500)
 
     wdsPings.headerLocked = true
-    SaveLoadHeaderReference.data.name = "|cEAC8E9[wd's pings] Re-shared [" .. wdsPings.GetNumberOfPingsInRange() .. "] pings in range."
-    SaveLoadHeaderReference:UpdateValue()
+    ClearShareSettingsMenuReference.data.name = "|cEAC8E9[wd's pings] Re-shared [" .. wdsPings.GetNumberOfPingsInRange() .. "] pings in range."
+    ClearShareSettingsMenuReference:UpdateValue()
     wdsPings.headerString = "share"
 
 end
@@ -476,7 +480,7 @@ function wdsPings.ImportPings()
     wdsPings.submenuLocked = true
     zo_callLater(function()
         wdsPings.submenuLocked = false
-        wdsPings.updateSaveLoad()
+        wdsPings.updateSettingsTable()
     end, 3500)
 end
 
@@ -622,7 +626,7 @@ function wdsPings.GetIdFromElmsID(id)
     end
 
     return "wdsPings/icons/default_ping.dds"
-    
+
 
 end
 
