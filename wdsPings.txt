@@ -3,7 +3,7 @@
 ## APIVersion: 101043 101044
 ## Description: Quickly ping where you're looking with |cEAC8E9wd's pings™|r (trademark pending)
 ## SavedVariables: wdsPingsVariables
-## DependsOn: LibAddonMenu-2.0>=31 LibDataShare>=3 OdySupportIcons
+## DependsOn: LibAddonMenu-2.0>=31 OdySupportIcons
 ## AddOnVersion: 23
 
 wdsPings.lua

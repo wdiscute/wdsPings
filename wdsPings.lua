@@ -17,12 +17,6 @@ wdsPings.SenderPosition = {}
 
 
 function wdsPings:OnIncomingPing(tag, data)
-  --only accept ping if zoneid matches the sender
-  d("-----")
-  d("received ping at:" .. data.encoded)
-  d("from" .. tag)
-  d("-----")
-
   --decode
   local x, y, z, texture, type = data.encoded:match("([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)")
 
@@ -35,15 +29,12 @@ function wdsPings:OnIncomingPing(tag, data)
     return
   end
 
+  --only accept ping if zoneid matches the sender or is permanent
   local zoneidSender, _, _, _ = GetUnitRawWorldPosition(tag)
   local zoneidReceiver, _, _, _ = GetUnitRawWorldPosition("player")
-  if (zoneidSender == zoneidReceiver) then
-    wdsPings.placePing(x, y, z, wdsPings.textures[tonumber(texture)], type)
+  if (zoneidSender == zoneidReceiver or type ~= "p") then
+    wdsPings.placePing(x, y, z, wdsPings.textures[tonumber(texture)], type, zoneidSender)
   else
-    --if zoneid doesnt match, save on that zone still
-    if (data.type ~= "p") then
-
-    end
   end
 end
 
@@ -93,9 +84,9 @@ function wdsPings.Initialize()
     showTempTrials = "Everyone",
     showPermDungeons = "Everyone",
     showPermTrials = "Group Leader Only",
-    scaleTempPing = 8,
-    scalePermPing = 8,
-    SavedPings = {},
+    scalePing = 8,
+    scaleMarker = 8,
+    savedPings = {},
     ESS = false
   }
 
@@ -117,7 +108,7 @@ function wdsPings.Initialize()
     [4] = "wdsPings/icons/default_ping.dds",
   }
 
-  wdsPings.savedVariables.SavedPings[363] = fakePing
+  wdsPings.savedVariables.savedPings[363] = fakePing
 
   wdsPings.settings =
   {
@@ -127,9 +118,11 @@ function wdsPings.Initialize()
     showTempTrials = wdsPings.savedVariables.showTempTrials,
     showPermDungeons = wdsPings.savedVariables.showPermDungeons,
     showPermTrials = wdsPings.savedVariables.showPermTrials,
-    scaleTempPing = wdsPings.savedVariables.scaleTempPing,
-    scalePermPing = wdsPings.savedVariables.scalePermPing,
-    SavedPings = wdsPings.savedVariables.SavedPings
+    scalePing = wdsPings.savedVariables.scalePing,
+    scaleMarker = wdsPings.savedVariables.scaleMarker,
+    savedPings = wdsPings.savedVariables.savedPings
+
+    --wdsPings.savedVariables.savedPings[zoneid][pingIndex][x/y/z][texture]
   }
 
   wdsPings.optionsTable = {}
@@ -162,16 +155,16 @@ function wdsPings.SlashCommand(input)
   end
 
   if (command == "clear" or command == "2" or command == "c" or command == "remove" or command == "x") then
-    wdsPings.RemovePing("0", true)
+    wdsPings.ClearSavedMarkers()
     return
   end
 
-  if (command == "clearall" or command == "ca" or command == "removeall" or command == "xx") then
+  if (command == "clearclose" or command == "cc" or command == "removeclose") then
     if (IsUnitGroupLeader('player') == false) then
       d("|cEAC8E9[wd's pings] |cee5555[!] group leader is required to clear everyone's pings [!]")
       return
     end
-    wdsPings.RemovePing("1", true)
+    wdsPings.ClearClosestMarker()
     return
   end
 
@@ -223,16 +216,22 @@ function wdsPings.getTextureIdFromString(textureString)
   end
 end
 
-function wdsPings.placePing(x, y, z, texture, type)
-  --spawn icon using OSI
-  local iconOSI = OSI.CreatePositionIcon(x, y, z, texture, wdsPings.settings.scaleTempPing * 10, OSI.BASECOLOR, 0,
-    callback)
-  --this ^^^^
+function wdsPings.placePing(x, y, z, texture, type, zoneid)
   --saves icon returned by OSI in array so i have my own version of the pings collection
+  local iconOSI = OSI.CreatePositionIcon(x, y, z, texture, wdsPings.settings.scalePing * 10, OSI.BASECOLOR, 0, callback)
   wdsPings.array[#wdsPings.array + 1] = iconOSI
   iconOSI.counter = nil
+
   --todo ping animations
   --iconOSI.callback = function() wdsPings.UpdatePingsAnim(iconOSI) end
+
+  --attempt to save marker, if overlapping return
+  if (type ~= "p") then
+    local overlapping = wdsPings.attemptSaveMarker(x, y, z, zoneid, texture)
+    if (overlapping == true) then
+      return
+    end
+  end
 
   --if ping then delete after 3500ms
   --TODO: CHANGE 3500 TO SOMETHING CONFIGURABLE
@@ -374,8 +373,9 @@ function wdsPings.CreatePingOrMarker(type)
 
   x = x + (xsin * tonumber(valueFinal))
   z = z + (zcos * tonumber(valueFinal))
+
   --place ping local
-  wdsPings.placePing(x, y, z, texture, type)
+  wdsPings.placePing(x, y, z, texture, type, zoneid)
 
   x = x / 10
   x = math.floor(x)
@@ -394,34 +394,6 @@ function wdsPings.CreatePingOrMarker(type)
 
   --TODO PLAY AROUND WITH THIS
   local callback = nil
-end
-
-function wdsPings.RemovePing(type, showInChat)
-  for i = 1, #wdsPings.array do
-    OSI.DiscardPositionIcon(wdsPings.array[i])
-  end
-  for i = 1, #wdsPings.array do
-    table.remove(wdsPings.array, 1)
-  end
-  --type 0 = local
-  --type 1 = everyone, requires raid lead to trigger
-
-  if (type == "1") then
-    if (IsUnitGroupLeader('player')) then
-      if (showInChat == true) then d("|cEAC8E9[wd's pings] You have removed all pings for everyone.") end
-      wdsPings.share:QueueData(3000000000)
-    else
-      if (showInChat == true) then
-        d(
-          "|cEAC8E9[wd's pings] Only group leaders may clearall. Use |cff0000/wd |cEAC8E9 if you meant to clear only your pings.")
-        return
-      end
-    end
-  end
-
-  if (type == "0") then
-    if (showInChat == true) then d("|cEAC8E9[wd's pings] You have removed all pings for yourself only.") end
-  end
 end
 
 function wdsPings.OnAddOnLoaded(event, addonName)

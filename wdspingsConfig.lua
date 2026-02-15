@@ -141,7 +141,7 @@ local optionsTable =
         name = "Clear Markers",
         tooltip = "",
         func = function()
-            wdsPings.ClearSavedPings()
+            wdsPings.ClearSavedMarkers()
             wdsPings.updateSettingsTable()
         end,
         width = "half",
@@ -152,7 +152,7 @@ local optionsTable =
         name = "Share Markers",
         tooltip = "",
         func = function()
-            wdsPings.ClearSavedPings()
+            wdsPings.ShareMarkers()
             wdsPings.updateSettingsTable()
         end,
         width = "half",
@@ -160,171 +160,79 @@ local optionsTable =
     },
     [10] = { --pings settings
         type = "submenu",
-        name = "|c6488eaPINGS|r SETTINGS",
+        name = "|c6488eaPINGS|r & |cb399ddMARKERS|r SETTINGS",
         controls = {
             [1] = {
-                type = "description",
-                title = nil,
-                text =
-                "Select whether you want to receive |c6488eaTEMPORARY|r pings from everyone, group leader only, or none.",
-                width = "full",
-            },
-            [2] = {
-                type = "dropdown",
-                name = "Pings While in Dungeons: ",
-                tooltip = "",
-                choices = { "Everyone", "Group Leader Only", "None" },
-                getFunc = function() return wdsPings.settings.showTempDungeons end,
-                setFunc =
-                    function(var)
-                        wdsPings.savedVariables.showTempDungeons = var
-                        wdsPings.settings.showTempDungeons = var
-                    end,
-                width = "half",
-            },
-            [3] = {
-                type = "dropdown",
-                name = "Pings While in Trials: ",
-                tooltip = "",
-                choices = { "Everyone", "Group Leader Only", "None" },
-                getFunc = function() return wdsPings.settings.showTempTrials end,
-                setFunc = function(var)
-                    wdsPings.savedVariables.showTempTrials = var
-                    wdsPings.settings.showTempTrials = var
-                end,
-                width = "half",
-            },
-            [4] = {
                 type = "slider",
-                name = "Ping scale:",
+                name = "|c6488eaPings|r (temporary) scale:",
                 min = 0.1,
                 max = 20,
                 step = 0.01,
                 decimals = 2,
-                getFunc = function() return wdsPings.settings.scaleTempPing end,
+                getFunc = function() return wdsPings.settings.scalePing end,
                 setFunc = function(var)
-                    wdsPings.settings.scaleTempPing = var
-                    wdsPings.savedVariables.scaleTempPing = var
+                    wdsPings.settings.scalePing = var
+                    wdsPings.savedVariables.scalePing = var
+                end,
+                width = "half",
+                warning = "This scale is applied only on your game. It does not affect how others see pings."
+            },
+            [2] = {
+                type = "slider",
+                name = "|cb399ddMarkers|r (permanent) scale:",
+                min = 0.1,
+                max = 20,
+                step = 0.01,
+                decimals = 2,
+                getFunc = function() return wdsPings.settings.scaleMarker end,
+                setFunc = function(var)
+                    wdsPings.settings.scaleMarker = var
+                    wdsPings.savedVariables.scaleMarker = var
                 end,
                 width = "half",
                 warning = "This scale is applied only on your game. It does not affect how others see pings."
             },
         },
     },
-    [11] = { --markers settings
+    [11] = { --import/export
         type = "submenu",
-        name = "|cb399ddMARKERS|r SETTINGS",
+        name = "IMPORT & EXPORT",
         controls = {
             [1] = {
-                type = "description",
-                title = nil,
-                text =
-                "Select whether you want to receive |cb399ddPERMANENT|r pings from everyone, group leader only, or none.",
-                width = "full",
-            },
-            [2] = {
-                type = "dropdown",
-                name = "Markers While in Dungeons: ",
-                tooltip = "",
-                choices = { "Everyone", "Group Leader Only", "None" },
-                getFunc = function() return wdsPings.settings.showPermDungeons end,
-                setFunc = function(var)
-                    wdsPings.savedVariables.showPermDungeons = var
-                    wdsPings.settings.showPermDungeons = var
-                end,
-                width = "half",
-            },
-            [3] = {
-                type = "dropdown",
-                name = "Markers While in Trials: ",
-                tooltip = "",
-                choices = { "Everyone", "Group Leader Only", "None" },
-                getFunc = function() return wdsPings.settings.showPermTrials end,
-                setFunc = function(var)
-                    wdsPings.savedVariables.showPermTrials = var
-                    wdsPings.settings.showPermTrials = var
-                end,
-                width = "half",
-            },
-            [4] = {
                 type = "slider",
-                name = "Ping scale:",
+                name = "|c6488eaPings|r (temporary) scale:",
                 min = 0.1,
                 max = 20,
                 step = 0.01,
                 decimals = 2,
-                getFunc = function() return wdsPings.settings.scalePermPing end,
+                getFunc = function() return wdsPings.settings.scalePing end,
                 setFunc = function(var)
-                    wdsPings.settings.scalePermPing = var
-                    wdsPings.savedVariables.scalePermPing = var
+                    wdsPings.settings.scalePing = var
+                    wdsPings.savedVariables.scalePing = var
+                end,
+                width = "half",
+                warning = "This scale is applied only on your game. It does not affect how others see pings."
+            },
+            [2] = {
+                type = "slider",
+                name = "|cb399ddMarkers|r (permanent) scale:",
+                min = 0.1,
+                max = 20,
+                step = 0.01,
+                decimals = 2,
+                getFunc = function() return wdsPings.settings.scaleMarker end,
+                setFunc = function(var)
+                    wdsPings.settings.scaleMarker = var
+                    wdsPings.savedVariables.scaleMarker = var
                 end,
                 width = "half",
                 warning = "This scale is applied only on your game. It does not affect how others see pings."
             },
         },
-    }
+    },
 }
 
-
-
-
-
 function wdsPings.statLAM()
-
-    if(ElmsMarkers ~= nil)then
-        optionsTable[12] = {
-            type = "submenu",
-            name = "|cff746c[Beta]|r |c00a551Elm's Markers Import|r",
-            reference = "ElmsHeader",
-            controls = {
-                [1] = {
-                    type = "description",
-                    title = "Paste a string from Elm's Markers to import them as |cEAC8E9wd's pings|r. Clear your saved Elm's Markers so you don't get duplicate markers. Export functionality coming soon(tm)",
-                    text = "",
-                    width = "full",
-                },
-                [2] = {
-                    type = "editbox",
-                    name = "  (double click to select everything)",
-                    tooltip = "",
-                    getFunc = function() return wdsPings.ImportString end,
-                    setFunc = function(text) wdsPings.ImportString = text end,
-                    isMultiline = false,
-                    isExtraWide = true,
-                    width = "half",
-                },
-                [3] = {
-                    type = "button",
-                    name = "Paste local Elm's markers string",
-                    tooltip = "This will check the elm's markers you have loaded in the zone and paste the string into the box for easy importing.",
-                    func = function()
-                        wdsPings.ImportString = ElmsMarkers.savedVars.configStringExport
-                    end,
-                    width = "half",
-                },
-                [4] = {
-                    type = "button",
-                    name = "Import",
-                    func = function()
-                        wdsPings.ImportPings()
-                        wdsPings.updateSettingsTable()
-                    end,
-                    width = "half",
-                },
-                [5] = {
-                    type = "button",
-                    name = "Clear Elm's Markers",
-                    func = function()
-                        ElmsMarkers.ClearZone()
-                    end,
-                    width = "half",
-                    warning = "This will clear your saved Elm's Markers for this zone! Be careful as this can not be undone.",
-                    isDangerous = true,
-                },
-            },
-        }
-    end
-
     local LAM = LibAddonMenu2
     wdsPings.panel = LAM:RegisterAddonPanel("wd's Pings", panelData)
     LAM:RegisterOptionControls("wd's Pings", optionsTable)
@@ -336,10 +244,10 @@ CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
 end)
 
 function wdsPings.updateSettingsTable()
-
-    if(wdsPings.headerLocked == false)then
+    if (wdsPings.headerLocked == false) then
         ClearShareSettingsMenuReference.data.name = "" ..
-        wdsPings.GetCurrentZoneNameWithColor() .. "|r - |cA9DDB1[" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] MARKERS SAVED|r"
+            wdsPings.GetCurrentZoneNameWithColor() ..
+            "|r - |cA9DDB1[" .. wdsPings.GetNumberOfPingsInCurrentZone() .. "] MARKERS SAVED|r"
         ClearShareSettingsMenuReference:UpdateValue()
     end
 end
